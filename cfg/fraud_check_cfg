@@ -7,7 +7,8 @@ def check_for_fraud(self, current_transaction: Transaction,...
 "]
 	subgraph clustercheck_for_fraud {
 		graph [label=check_for_fraud]
-		3 [label="\"\"\"
+		3 [label="A
+\"\"\"
         Verifica a transação atual contra um conjunto de regras para identificar fraudes.
         \"\"\"
 is_fraudulent = False
@@ -16,50 +17,63 @@ verification_required = False
 risk_score = 0
 if current_transaction.amount > 10000:
 "]
-		4 [label="is_fraudulent = True
+		4 [label="B
+is_fraudulent = True
 verification_required = True
 risk_score += 50
 "]
-		5 [label="recent_transaction_count = 0
+		5 [label="C
+recent_transaction_count = 0
 "]
-		6 [label="for transaction in previous_transactions:
+		6 [label="D
+for transaction in previous_transactions:
 "]
-		7 [label="time_difference = current_transaction.timestamp - transaction.timestamp
+		7 [label="E
+time_difference = current_transaction.timestamp - transaction.timestamp
 time_diff_minutes = time_difference.total_seconds() / 60
 if time_diff_minutes <= 60:
 "]
 		"7_calls" [label="time_difference.total_seconds" shape=box]
 		7 -> "7_calls" [label=calls style=dashed]
-		9 [label="recent_transaction_count += 1
+		9 [label="G
+recent_transaction_count += 1
 "]
 		9 -> 6 [label=""]
 		7 -> 9 [label="time_diff_minutes <= 60"]
 		7 -> 6 [label="(time_diff_minutes > 60)"]
 		6 -> 7 [label=previous_transactions]
-		8 [label="if recent_transaction_count > 10:
+		8 [label="F
+if recent_transaction_count > 10:
 "]
-		11 [label="is_blocked = True
+		11 [label="H
+is_blocked = True
 risk_score += 30
 "]
-		12 [label="if previous_transactions:
+		12 [label="I
+if previous_transactions:
 "]
-		13 [label="last_transaction = previous_transactions[-1]
+		13 [label="J
+last_transaction = previous_transactions[-1]
 time_since_last = current_transaction.timestamp - last_transaction.timestamp
 minutes_since_last = time_since_last.total_seconds() / 60
 if minutes_since_last < 30 and last_transaction.location != current_transaction.location:
 "]
 		"13_calls" [label="time_since_last.total_seconds" shape=box]
 		13 -> "13_calls" [label=calls style=dashed]
-		15 [label="is_fraudulent = True
+		15 [label="L
+is_fraudulent = True
 verification_required = True
 risk_score += 20
 "]
-		14 [label="if current_transaction.location in blacklisted_locations:
+		14 [label="K
+if current_transaction.location in blacklisted_locations:
 "]
-		17 [label="is_blocked = True
+		17 [label="M
+is_blocked = True
 risk_score = 100
 "]
-		18 [label="return FraudCheckResult(is_fraudulent, is_blocked, verification_required,
+		18 [label="N
+return FraudCheckResult(is_fraudulent, is_blocked, verification_required,
     risk_score)
 "]
 		17 -> 18 [label=""]
