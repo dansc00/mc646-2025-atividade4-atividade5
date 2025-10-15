@@ -16,9 +16,9 @@ def blacklisted_locations():
 def now():
     return datetime.now()
 
-# --------------------------------------------------------------------
-# A partir daqui, adicione seus casos de teste específicos:
-# --------------------------------------------------------------------
+# -------------------------------------------------------------------------------------------------------------------
+# Testes gerados utilizando a Complexidade Ciclomática e a Criação do Conjunto de Caminhos Básicos utilizando o CFG
+# -------------------------------------------------------------------------------------------------------------------
 
 def test_cenario_maximo_risco_aciona_todas_regras(fraud_system, now, blacklisted_locations):
     """
@@ -446,7 +446,6 @@ def testa_transacao_normal_sem_nenhum_risco(fraud_system, now, blacklisted_locat
     O motivo disto é que após utilizar essas técnicas para gerar os testes anteriores, percebeu-se que 
     nenhum dos testes gerados cobria o "caminho feliz", que é um cenário crítico de acordo com os testadores.
     """
-    # 1. Arrange: Configura dados para o teste
     
     # Cria uma transação atual de baixo valor em um local seguro
     current_transaction = Transaction(
@@ -471,14 +470,14 @@ def testa_transacao_normal_sem_nenhum_risco(fraud_system, now, blacklisted_locat
         # Condição 2: Apenas 2 transações recentes, abaixo do limite de 10
     ]
 
-    # 2. Act: Executa o método testado
+    # Executa o método testado
     result = fraud_system.check_for_fraud(
         current_transaction,
         previous_transactions,
         blacklisted_locations
     )
 
-    # 3. Assert: Verifica se o resultado é o esperado (nenhum alerta)
+    # Verifica se o resultado é o esperado (nenhum alerta)
     expected_result = FraudCheckResult(
         is_fraudulent=False,
         is_blocked=False,
