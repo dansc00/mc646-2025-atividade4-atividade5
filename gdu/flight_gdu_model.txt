@@ -1,0 +1,37 @@
+node A: d = {passengers, booking_time, available_seats, current_price, previous_sales, is_cancellation, departure_time, reward_points_available}
+node B: c-use = {final_price, refund_amount, confirmation, points_used}
+edge B->C: p-use = {passengers, available_seats}
+edge B->D: p-use = {passengers, available_seats}
+node C: c-use = {confirmation, final_price, refund_amount, points_used}
+node D: d = {price_factor, final_price(reset), time_difference, hours_to_departure}; c-use = {previous_sales, current_price, price_factor, passengers, departure_time, booking_time, time_difference}
+edge D -> E: p-use = {hours_to_departure}
+edge D -> F: p-use = {hours_to_departure}
+node E: d = {final_price(reset)}; c-use = {final_price}
+node F: empty
+edge E -> F: empty
+edge F -> G: p-use = {passengers}
+edge F -> H: p-use = {passengers}
+node G: d = {final_price(reset)}; c-use = {final_price}
+node H: empty
+edge G -> H: empty
+edge H -> I: p-use = {reward_points_available}
+edge H -> J: p-use = {reward_points_available}
+node I: d = {final_price(reset), points_used(reset)}; c-use = {final_price, reward_points_available}
+node J: empty
+edge I -> J: empty
+edge J -> K = p-use = {final_price}
+edge J -> L = p-use = {final_price}
+node K: d = {final_price(reset)}
+node L: empty
+edge K -> L: empty
+edge L -> M: p-use = {is_cancellation}
+edge L -> N: p-use = {is_cancellation}
+node M: d = {confirmation(reset)}, c-use = {confirmation, final_price, refund_amount, points_used}
+node N: empty
+edge N -> O: p-use = {hours_to_departure}
+edge N -> P: p-use = {hours_to_departure}
+node O: d = {refund_amount(reset)}; c-use = {final_price}
+node P: d = {refund_amount(reset)}; c-use = {final_price}
+edge P -> Q = empty
+edge O -> Q = empty
+node Q: c-use = {refund_amount}
