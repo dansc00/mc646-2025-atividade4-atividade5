@@ -1,5 +1,5 @@
 node A: d = {passengers, booking_time, available_seats, current_price, previous_sales, is_cancellation, departure_time, reward_points_available}
-node B: c-use = {final_price, refund_amount, confirmation, points_used}
+node B: d = {final_price, refund_amount, confirmation, points_used}
 edge B->C: p-use = {passengers, available_seats}
 edge B->D: p-use = {passengers, available_seats}
 node C: c-use = {confirmation, final_price, refund_amount, points_used}
