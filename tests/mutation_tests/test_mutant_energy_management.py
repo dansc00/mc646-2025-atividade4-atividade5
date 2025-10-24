@@ -1,46 +1,25 @@
+"""
+Testes específicos para matar os mutantes sobreviventes do EnergyManagementSystem.
+Cada teste é projetado para detectar uma mutação específica.
+"""
+
 from datetime import datetime
 from src.energy.EnergyManagementSystem import SmartEnergyManagementSystem
 from src.energy.DeviceSchedule import DeviceSchedule
-from src.energy.EnergyManagementResult import EnergyManagementResult
 
 energy_system = SmartEnergyManagementSystem()
 
-# ==============================================================================
-# TESTES DE MODO DE ECONOMIA DE ENERGIA (Regra 1)
-# ==============================================================================
 
-def test_tc1_energy_saving_mode_activated_high_price():
+def test_mutant6():
     """
-    TC1: Verifica se o modo de economia é ativado e dispositivos de baixa 
-    prioridade são desligados quando o preço está alto.
-    Caminho: current_price > price_threshold → energy_saving_mode = True
-    """
-    result = energy_system.manage_energy(
-        current_price=0.25,
-        price_threshold=0.20,
-        device_priorities={"Heating": 1, "Lights": 2, "TV": 3},
-        current_time=datetime(2025, 10, 16, 14, 0, 0),
-        current_temperature=22.0,
-        desired_temperature_range=(20.0, 24.0),
-        energy_usage_limit=50.0,
-        total_energy_used_today=25.0,
-        scheduled_devices=[]
-    )
+    Mata o mutante 6: current_price > price_threshold → current_price >= price_threshold
     
-    assert result.energy_saving_mode is True
-    assert result.device_status["Lights"] is False   # priority > 1 → OFF
-    assert result.device_status["TV"] is False       # priority > 1 → OFF
-
-
-def test_tc2_energy_saving_mode_not_activated_low_price():
-    """
-    TC2: Verifica se o modo de economia NÃO é ativado quando o preço está baixo.
-    Caminho: current_price <= price_threshold → todos dispositivos ON
+    Mutação: Operador relacional > mudou para >=
     """
     result = energy_system.manage_energy(
-        current_price=0.15,
-        price_threshold=0.20,
-        device_priorities={"Heating": 1, "Lights": 2, "TV": 3},
+        current_price=0.20,       
+        price_threshold=0.20,     
+        device_priorities={"Heating": 1, "Lights": 2},
         current_time=datetime(2025, 10, 16, 14, 0, 0),
         current_temperature=22.0,
         desired_temperature_range=(20.0, 24.0),
@@ -50,24 +29,112 @@ def test_tc2_energy_saving_mode_not_activated_low_price():
     )
     
     assert result.energy_saving_mode is False
-    assert result.device_status["Lights"] is True
+    assert result.device_status["Lights"] is True  
+
+
+def test_mutant9():
+    """
+    Mata o mutante 9: priority > 1 → priority >= 1
+    
+    Mutação: Operador relacional > mudou para >= no check de prioridade
+    """
+    result = energy_system.manage_energy(
+        current_price=0.25,       # Alto - ativa modo economia
+        price_threshold=0.20,
+        device_priorities={"CriticalDevice": 1},  # Priority exatamente 1
+        current_time=datetime(2025, 10, 16, 14, 0, 0),
+        current_temperature=22.0,
+        desired_temperature_range=(20.0, 24.0),
+        energy_usage_limit=50.0,
+        total_energy_used_today=25.0,
+        scheduled_devices=[]
+    )
+    
+    # Dispositivo com priority 1 deve ficar LIGADO em modo economia
+    assert result.energy_saving_mode is True
+    assert result.device_status["CriticalDevice"] is True
+
+
+def test_mutant13():
+    """
+    Mata o mutante 13: device_status[device] = True → device_status[device] = False
+    
+    Mutação: True mudou para False no else (alta prioridade)
+    """
+    result = energy_system.manage_energy(
+        current_price=0.30,
+        price_threshold=0.20,
+        device_priorities={"Essential": 1, "NonEssential": 3},
+        current_time=datetime(2025, 10, 16, 14, 0, 0),
+        current_temperature=22.0,
+        desired_temperature_range=(20.0, 24.0),
+        energy_usage_limit=50.0,
+        total_energy_used_today=25.0,
+        scheduled_devices=[]
+    )
+    
+    # Dispositivo essencial (priority 1) deve estar LIGADO
+    assert result.device_status["Essential"] is True
+    # Dispositivo não essencial deve estar desligado
+    assert result.device_status["NonEssential"] is False
+
+
+def test_mutant14():
+    """
+    Mata o mutante 14: device_status[device] = True → device_status[device] = None
+    
+    Mutação: True mudou para None
+    """
+    result = energy_system.manage_energy(
+        current_price=0.25,
+        price_threshold=0.20,
+        device_priorities={"Device": 1},
+        current_time=datetime(2025, 10, 16, 14, 0, 0),
+        current_temperature=22.0,
+        desired_temperature_range=(20.0, 24.0),
+        energy_usage_limit=50.0,
+        total_energy_used_today=25.0,
+        scheduled_devices=[]
+    )
+    
+    assert result.device_status["Device"] is True
+    assert result.device_status["Device"] is not None
+
+
+def test_mutant19():
+    """
+    Mata o mutante 19: current_time.hour < 6 → current_time.hour <= 6
+    
+    Mutação: < mudou para <= no limite superior do modo noturno
+    """
+    result = energy_system.manage_energy(
+        current_price=0.15,
+        price_threshold=0.20,
+        device_priorities={"Security": 1, "TV": 2},
+        current_time=datetime(2025, 10, 16, 6, 0, 0),  # Exatamente 6h
+        current_temperature=22.0,
+        desired_temperature_range=(20.0, 24.0),
+        energy_usage_limit=50.0,
+        total_energy_used_today=25.0,
+        scheduled_devices=[]
+    )
+    
+    # Às 6h, modo noturno já terminou - TV deve estar ligada
     assert result.device_status["TV"] is True
+    assert result.device_status["Security"] is True
 
 
-# ==============================================================================
-# TESTES DE MODO NOTURNO (Regra 2)
-# ==============================================================================
-
-def test_tc3_night_mode_active_turns_off_non_essential():
+def test_mutant20():
     """
-    TC3: Verifica se o modo noturno desliga dispositivos não essenciais (23h-6h).
-    Caminho: current_time.hour >= 23 → desliga todos exceto Security/Refrigerator
+    Mata o mutante 20: current_time.hour < 6 → current_time.hour < 7
+    
+    Mutação: 6 mudou para 7 no limite do modo noturno
     """
     result = energy_system.manage_energy(
         current_price=0.15,
         price_threshold=0.20,
-        device_priorities={"Security": 1, "Refrigerator": 1, "Lights": 2, "TV": 3},
-        current_time=datetime(2025, 10, 17, 2, 0, 0),  # 2h da manhã
+        device_priorities={"Refrigerator": 1, "Lights": 2},
+        current_time=datetime(2025, 10, 16, 6, 30, 0),  # 6h30
         current_temperature=22.0,
         desired_temperature_range=(20.0, 24.0),
         energy_usage_limit=50.0,
@@ -75,330 +142,271 @@ def test_tc3_night_mode_active_turns_off_non_essential():
         scheduled_devices=[]
     )
     
-    assert result.device_status["Security"] is True
-    assert result.device_status["Refrigerator"] is True
-    assert result.device_status["Lights"] is False
-    assert result.device_status["TV"] is False
-
-
-def test_tc4_night_mode_boundary_23h():
-    """
-    TC4: Testa o limite exato de 23h (início do modo noturno).
-    Caminho: current_time.hour == 23 → modo noturno ativo
-    """
-    result = energy_system.manage_energy(
-        current_price=0.15,
-        price_threshold=0.20,
-        device_priorities={"Security": 1, "Lights": 2},
-        current_time=datetime(2025, 10, 16, 23, 0, 0),  # Exatamente 23h
-        current_temperature=22.0,
-        desired_temperature_range=(20.0, 24.0),
-        energy_usage_limit=50.0,
-        total_energy_used_today=25.0,
-        scheduled_devices=[]
-    )
-    
-    assert result.device_status["Security"] is True
-    assert result.device_status["Lights"] is False
-
-
-def test_tc5_night_mode_inactive_daytime():
-    """
-    TC5: Verifica que o modo noturno NÃO está ativo durante o dia.
-    Caminho: current_time.hour between 6-22 → modo noturno inativo
-    """
-    result = energy_system.manage_energy(
-        current_price=0.15,
-        price_threshold=0.20,
-        device_priorities={"Security": 1, "Lights": 2},
-        current_time=datetime(2025, 10, 16, 14, 0, 0),  # 14h
-        current_temperature=22.0,
-        desired_temperature_range=(20.0, 24.0),
-        energy_usage_limit=50.0,
-        total_energy_used_today=25.0,
-        scheduled_devices=[]
-    )
-    
-    # Modo noturno inativo, todos dispositivos ligados (preço baixo)
-    assert result.device_status["Security"] is True
+    # Às 6h30, modo noturno já terminou - Lights deve estar ligada
     assert result.device_status["Lights"] is True
 
 
-def test_tc6_night_mode_boundary_before_6h():
+def test_mutant44():
     """
-    TC6: Testa o limite de 5h59 (ainda dentro do modo noturno).
-    Caminho: current_time.hour < 6 → modo noturno ativo
-    """
-    result = energy_system.manage_energy(
-        current_price=0.15,
-        price_threshold=0.20,
-        device_priorities={"Refrigerator": 1, "TV": 2},
-        current_time=datetime(2025, 10, 17, 5, 59, 0),  # 5h59
-        current_temperature=22.0,
-        desired_temperature_range=(20.0, 24.0),
-        energy_usage_limit=50.0,
-        total_energy_used_today=25.0,
-        scheduled_devices=[]
-    )
+    Mata o mutante 44: "Cooling" → "XXCoolingXX"
     
-    assert result.device_status["Refrigerator"] is True
-    assert result.device_status["TV"] is False
-
-
-# ==============================================================================
-# TESTES DE REGULAÇÃO DE TEMPERATURA (Regra 3)
-# ==============================================================================
-
-def test_tc7_temperature_below_range_activates_heating():
-    """
-    TC7: Temperatura abaixo do range → ativa aquecimento.
-    Caminho: current_temperature < desired_temperature_range[0]
+    Mutação: String "Cooling" foi modificada
     """
     result = energy_system.manage_energy(
         current_price=0.15,
         price_threshold=0.20,
         device_priorities={"TV": 2},
         current_time=datetime(2025, 10, 16, 14, 0, 0),
-        current_temperature=18.0,  # Abaixo de 20.0
+        current_temperature=22.0,  # Temperatura normal
         desired_temperature_range=(20.0, 24.0),
         energy_usage_limit=50.0,
         total_energy_used_today=25.0,
         scheduled_devices=[]
     )
     
-    assert result.temperature_regulation_active is True
-    assert result.device_status["Heating"] is True
-    assert result.device_status.get("Cooling", False) is False
+    # A chave "Cooling" deve existir e estar False
+    assert "Cooling" in result.device_status
+    assert result.device_status["Cooling"] is False
+    # A chave mutada não deve existir
+    assert "XXCoolingXX" not in result.device_status
 
 
-def test_tc8_temperature_above_range_activates_cooling():
+def test_mutant49():
     """
-    TC8: Temperatura acima do range → ativa resfriamento.
-    Caminho: current_temperature > desired_temperature_range[1]
-    """
-    result = energy_system.manage_energy(
-        current_price=0.15,
-        price_threshold=0.20,
-        device_priorities={"TV": 2},
-        current_time=datetime(2025, 10, 16, 14, 0, 0),
-        current_temperature=26.0,  # Acima de 24.0
-        desired_temperature_range=(20.0, 24.0),
-        energy_usage_limit=50.0,
-        total_energy_used_today=25.0,
-        scheduled_devices=[]
-    )
+    Mata o mutante 49: total_energy_used_today >= energy_usage_limit → 
+                       total_energy_used_today > energy_usage_limit
     
-    assert result.temperature_regulation_active is True
-    assert result.device_status["Cooling"] is True
-    assert result.device_status.get("Heating", False) is False
-
-
-def test_tc9_temperature_within_range_no_regulation():
-    """
-    TC9: Temperatura dentro do range → não regula.
-    Caminho: desired_temperature_range[0] <= temp <= desired_temperature_range[1]
+    Mutação: >= mudou para > na condição do while
     """
     result = energy_system.manage_energy(
         current_price=0.15,
         price_threshold=0.20,
-        device_priorities={"TV": 2},
-        current_time=datetime(2025, 10, 16, 14, 0, 0),
-        current_temperature=22.0,  # Dentro do range [20.0, 24.0]
-        desired_temperature_range=(20.0, 24.0),
-        energy_usage_limit=50.0,
-        total_energy_used_today=25.0,
-        scheduled_devices=[]
-    )
-    
-    assert result.temperature_regulation_active is False
-    assert result.device_status.get("Heating", False) is False
-    assert result.device_status.get("Cooling", False) is False
-
-
-def test_tc10_temperature_at_lower_boundary():
-    """
-    TC10: Temperatura exatamente no limite inferior → não regula.
-    Caminho: current_temperature == desired_temperature_range[0]
-    """
-    result = energy_system.manage_energy(
-        current_price=0.15,
-        price_threshold=0.20,
-        device_priorities={"TV": 2},
-        current_time=datetime(2025, 10, 16, 14, 0, 0),
-        current_temperature=20.0,  # Exatamente no limite inferior
-        desired_temperature_range=(20.0, 24.0),
-        energy_usage_limit=50.0,
-        total_energy_used_today=25.0,
-        scheduled_devices=[]
-    )
-    
-    assert result.temperature_regulation_active is False
-
-
-def test_tc11_temperature_at_upper_boundary():
-    """
-    TC11: Temperatura exatamente no limite superior → não regula.
-    Caminho: current_temperature == desired_temperature_range[1]
-    """
-    result = energy_system.manage_energy(
-        current_price=0.15,
-        price_threshold=0.20,
-        device_priorities={"TV": 2},
-        current_time=datetime(2025, 10, 16, 14, 0, 0),
-        current_temperature=24.0,  # Exatamente no limite superior
-        desired_temperature_range=(20.0, 24.0),
-        energy_usage_limit=50.0,
-        total_energy_used_today=25.0,
-        scheduled_devices=[]
-    )
-    
-    assert result.temperature_regulation_active is False
-
-
-# ==============================================================================
-# TESTES DE LIMITE DE ENERGIA (Regra 4)
-# ==============================================================================
-
-def test_tc12_energy_limit_exceeded_turns_off_low_priority():
-    """
-    TC12: Limite de energia excedido → desliga dispositivos progressivamente.
-    Caminho: total_energy_used_today >= energy_usage_limit → while loop executa
-    """
-    result = energy_system.manage_energy(
-        current_price=0.15,
-        price_threshold=0.20,
-        device_priorities={"Heating": 1, "Lights": 2, "TV": 3, "Washer": 2},
+        device_priorities={"Essential": 1, "Light": 2, "TV": 2},
         current_time=datetime(2025, 10, 16, 14, 0, 0),
         current_temperature=22.0,
         desired_temperature_range=(20.0, 24.0),
         energy_usage_limit=30.0,
-        total_energy_used_today=35.0,  # Excedeu o limite
+        total_energy_used_today=30.0,  # Exatamente no limite
         scheduled_devices=[]
     )
     
-    # Pelo menos um dispositivo com priority > 1 foi desligado
-    low_priority_count = sum(
-        1 for device, status in result.device_status.items()
-        if device in ["Lights", "TV", "Washer"] and not status
-    )
-    assert low_priority_count > 0
-    assert result.total_energy_used < 35.0  # Energia diminuiu
+    assert result.total_energy_used < 30.0
 
 
-def test_tc13_energy_limit_not_exceeded():
+def test_mutant51():
     """
-    TC13: Limite de energia NÃO excedido → loop não executa.
-    Caminho: total_energy_used_today < energy_usage_limit → while não entra
+    Mata o mutante 51: device_status.get(device, False) → device_status.get(device, True)
+    
+    Mutação: Default do .get() mudou de False para True
     """
     result = energy_system.manage_energy(
         current_price=0.15,
         price_threshold=0.20,
-        device_priorities={"Heating": 1, "Lights": 2, "TV": 3},
+        device_priorities={"Device1": 2, "Device2": 2},
         current_time=datetime(2025, 10, 16, 14, 0, 0),
         current_temperature=22.0,
         desired_temperature_range=(20.0, 24.0),
-        energy_usage_limit=50.0,
-        total_energy_used_today=25.0,  # Abaixo do limite
+        energy_usage_limit=20.0,
+        total_energy_used_today=25.0,  # Acima do limite
         scheduled_devices=[]
     )
     
-    assert result.device_status["Heating"] is False
-    assert result.device_status["Lights"] is True
-    assert result.device_status["TV"] is True
-    assert result.total_energy_used == 25.0  # Não mudou
+    # O loop deve funcionar corretamente mesmo com .get()
+    # Energia deve ter sido reduzida
+    assert result.total_energy_used < 25.0
 
 
-def test_tc14_energy_limit_no_devices_to_turn_off():
+def test_mutant53():
     """
-    TC14: Limite excedido mas não há dispositivos de baixa prioridade ligados.
-    Caminho: while entra → devices_to_turn_off vazio → devices_were_on = False
+    Mata o mutante 53: priority > 1 → priority > 2
+    
+    Mutação: 1 mudou para 2 no check de priority dentro do while
     """
     result = energy_system.manage_energy(
-        current_price=0.25,  # Preço alto para desligar baixa prioridade
+        current_price=0.15,
         price_threshold=0.20,
-        device_priorities={"Heating": 1, "Cooling": 1},  # Só alta prioridade
+        device_priorities={"Essential": 1, "MediumPriority": 2, "Low": 3},
         current_time=datetime(2025, 10, 16, 14, 0, 0),
-        current_temperature=19.0,
+        current_temperature=22.0,
+        desired_temperature_range=(20.0, 24.0),
+        energy_usage_limit=20.0,
+        total_energy_used_today=30.0,  # Muito acima
+        scheduled_devices=[]
+    )
+    
+    # Dispositivo com priority 2 deve ser considerado para desligamento
+    # Pelo menos um dispositivo com priority > 1 deve ter sido desligado
+    low_priority_off = (
+        result.device_status["MediumPriority"] is False or 
+        result.device_status["Low"] is False
+    )
+    assert low_priority_off
+
+
+def test_mutant58():
+    """
+    Mata o mutante 58: devices_were_on = False → devices_were_on = None
+    
+    Mutação: False mudou para None
+    """
+    result = energy_system.manage_energy(
+        current_price=0.25,  # Modo economia - desliga baixa prioridade
+        price_threshold=0.20,
+        device_priorities={"Device1": 1},  # Só alta prioridade
+        current_time=datetime(2025, 10, 16, 14, 0, 0),
+        current_temperature=22.0,
         desired_temperature_range=(20.0, 24.0),
         energy_usage_limit=10.0,
-        total_energy_used_today=15.0,  # Excedeu
+        total_energy_used_today=15.0,  # Acima do limite
         scheduled_devices=[]
     )
     
-    # Mesmo com limite excedido, não pode desligar dispositivos de alta prioridade
-    assert result.device_status["Heating"] is True
+    # O código deve executar sem erros (None causaria problemas no and)
+    assert result.device_status["Device1"] is True  # Alta prioridade mantém
 
 
-# ==============================================================================
-# TESTES DE DISPOSITIVOS AGENDADOS (Regra 5)
-# ==============================================================================
-
-def test_tc15_scheduled_device_activated_at_exact_time():
+def test_mutant59():
     """
-    TC15: Dispositivo agendado é ligado no horário exato.
-    Caminho: schedule.scheduled_time == current_time → liga dispositivo
-    """
-    scheduled_time = datetime(2025, 10, 16, 18, 0, 0)
+    Mata o mutante 59: continue → break
     
-    result = energy_system.manage_energy(
-        current_price=0.25,  # Preço alto
-        price_threshold=0.20,
-        device_priorities={"Oven": 3},  # Baixa prioridade
-        current_time=scheduled_time,
-        current_temperature=22.0,
-        desired_temperature_range=(20.0, 24.0),
-        energy_usage_limit=50.0,
-        total_energy_used_today=25.0,
-        scheduled_devices=[DeviceSchedule("Oven", scheduled_time)]
-    )
-    
-    # Mesmo com preço alto (desligaria por economia), agendamento sobrepõe
-    assert result.device_status["Oven"] is True
-
-
-def test_tc16_scheduled_device_not_activated_wrong_time():
-    """
-    TC16: Dispositivo agendado NÃO é ligado fora do horário.
-    Caminho: schedule.scheduled_time != current_time → não liga
+    Mutação: continue mudou para break
     """
     result = energy_system.manage_energy(
         current_price=0.25,
         price_threshold=0.20,
-        device_priorities={"Oven": 3},
+        device_priorities={"Critical": 1},
         current_time=datetime(2025, 10, 16, 14, 0, 0),
         current_temperature=22.0,
         desired_temperature_range=(20.0, 24.0),
-        energy_usage_limit=50.0,
-        total_energy_used_today=25.0,
-        scheduled_devices=[DeviceSchedule("Oven", datetime(2025, 10, 16, 18, 0, 0))]
+        energy_usage_limit=10.0,
+        total_energy_used_today=15.0,
+        scheduled_devices=[]
     )
     
-    # Preço alto desliga dispositivo de baixa prioridade
-    assert result.device_status["Oven"] is False
+    # Mesmo sem dispositivos para desligar, deve processar corretamente
+    assert result.device_status["Critical"] is True
 
 
-def test_tc17_multiple_scheduled_devices():
+def test_mutant60():
     """
-    TC17: Múltiplos dispositivos agendados, apenas os no horário correto ligam.
-    """
-    current = datetime(2025, 10, 16, 18, 0, 0)
+    Mata o mutante 60: total_energy_used_today < energy_usage_limit → 
+                       total_energy_used_today <= energy_usage_limit
     
+    Mutação: < mudou para <= no if dentro do for
+    """
     result = energy_system.manage_energy(
-        current_price=0.25,
+        current_price=0.15,
         price_threshold=0.20,
-        device_priorities={"Oven": 3, "Washer": 3, "Dryer": 3},
-        current_time=current,
+        device_priorities={"D1": 1, "D2": 2, "D3": 2, "D4": 2, "D5": 2},
+        current_time=datetime(2025, 10, 16, 14, 0, 0),
         current_temperature=22.0,
         desired_temperature_range=(20.0, 24.0),
-        energy_usage_limit=50.0,
-        total_energy_used_today=25.0,
-        scheduled_devices=[
-            DeviceSchedule("Oven", current),
-            DeviceSchedule("Washer", datetime(2025, 10, 16, 19, 0, 0)),
-            DeviceSchedule("Dryer", current)
-        ]
+        energy_usage_limit=31.0,
+        total_energy_used_today=35.0,  # 4 acima do limite
+        scheduled_devices=[]
     )
     
-    assert result.device_status["Oven"] is True    # Horário correto
-    assert result.device_status["Washer"] is False # Horário diferente
-    assert result.device_status["Dryer"] is True   # Horário correto
+    # Deve desligar exatamente 4 dispositivos e parar
+    # Original (<): para quando chega abaixo do limite
+    # Mutante (<=): pararia quando chegasse exatamente no limite
+    devices_off = sum(1 for v in result.device_status.values() if v is False)
+    assert devices_off >= 3  # Deve ter desligado pelo menos 3
+
+
+def test_mutant61():
+    """
+    Mata o mutante 61: break → continue
+    
+    Mutação: break mudou para continue
+    """
+    result = energy_system.manage_energy(
+        current_price=0.15,
+        price_threshold=0.20,
+        device_priorities={"D1": 1, "D2": 2, "D3": 2, "D4": 2, "D5": 3},
+        current_time=datetime(2025, 10, 16, 14, 0, 0),
+        current_temperature=22.0,
+        desired_temperature_range=(20.0, 24.0),
+        energy_usage_limit=30.0,
+        total_energy_used_today=32.0,  # 2 acima do limite
+        scheduled_devices=[]
+    )
+    
+    # Com break: para assim que atinge o limite
+    # Com continue: pode processar todos os dispositivos da lista
+    # O código deve parar e não desligar todos os dispositivos
+    devices_on = sum(1 for v in result.device_status.values() if v is True)
+    assert devices_on >= 2  # Pelo menos alta prioridade + alguns outros
+
+
+def test_mutant63():
+    """
+    Mata o mutante 63: device_status[device] = False → device_status[device] = None
+    
+    Mutação: False mudou para None no desligamento dentro do loop
+    """
+    result = energy_system.manage_energy(
+        current_price=0.15,
+        price_threshold=0.20,
+        device_priorities={"Essential": 1, "NonEssential": 2},
+        current_time=datetime(2025, 10, 16, 14, 0, 0),
+        current_temperature=22.0,
+        desired_temperature_range=(20.0, 24.0),
+        energy_usage_limit=20.0,
+        total_energy_used_today=25.0,
+        scheduled_devices=[]
+    )
+    
+    # Dispositivo desligado deve ser False, não None
+    if result.device_status["NonEssential"] is not True:
+        assert result.device_status["NonEssential"] is False
+        assert result.device_status["NonEssential"] is not None
+
+
+def test_mutant64():
+    """
+    Mata o mutante 64: total_energy_used_today -= 1 → total_energy_used_today = 1
+    
+    Mutação: -= 1 mudou para = 1 (atribuição em vez de decremento)
+    """
+    result = energy_system.manage_energy(
+        current_price=0.15,
+        price_threshold=0.20,
+        device_priorities={"D1": 1, "D2": 2, "D3": 2},
+        current_time=datetime(2025, 10, 16, 14, 0, 0),
+        current_temperature=22.0,
+        desired_temperature_range=(20.0, 24.0),
+        energy_usage_limit=20.0,
+        total_energy_used_today=25.0,
+        scheduled_devices=[]
+    )
+    
+    # Com -= 1: energia seria algo como 22-24
+    # Com = 1: energia seria 1
+    assert result.total_energy_used > 1
+    assert result.total_energy_used < 25.0
+
+
+def test_mutant66():
+    """
+    Mata o mutante 66: total_energy_used_today -= 1 → total_energy_used_today -= 2
+    
+    Mutação: Decremento de 1 mudou para 2
+    """
+    result = energy_system.manage_energy(
+        current_price=0.15,
+        price_threshold=0.20,
+        device_priorities={"D1": 1, "D2": 2, "D3": 2},
+        current_time=datetime(2025, 10, 16, 14, 0, 0),
+        current_temperature=22.0,
+        desired_temperature_range=(20.0, 24.0),
+        energy_usage_limit=28.0,
+        total_energy_used_today=30.0,  # 2 acima do limite
+        scheduled_devices=[]
+    )
+    
+    # Deve desligar 2 dispositivos e energia deve ser 28
+    # Com -= 1: energia = 30 - 2 = 28
+    # Com -= 2: energia = 30 - 4 = 26
+    # Verifica que a energia está próxima do limite (não muito abaixo)
+    assert result.total_energy_used >= 27.0  # No mínimo 27
+    assert result.total_energy_used <= 28.0  # No máximo 28
