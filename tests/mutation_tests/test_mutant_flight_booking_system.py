@@ -8,7 +8,7 @@ def flight_system():
     """Configura uma instância do FlightBookingSystem para os testes."""
     return FlightBookingSystem()
 
-def test_mutant75__insufficient_seats_and_confirmation_None(flight_system):
+def test_mutant75_insufficient_seats_and_confirmation_None(flight_system):
     """
     Teste com passageiros (10) excedendo assentos disponíveis (2).
     Deve retornar confirmação False com preços zerados.
@@ -30,7 +30,7 @@ def test_mutant75__insufficient_seats_and_confirmation_None(flight_system):
     assert result.refund_amount == 0.0
     assert not result.points_used
 
-def test_mutant77__insufficient_seats_and_points_used_None(flight_system):
+def test_mutant77_insufficient_seats_and_points_used_None(flight_system):
     """
     Teste com passageiros (10) excedendo assentos disponíveis (2).
     Deve retornar confirmação False, pontos usados False, com preços zerados.
@@ -74,7 +74,7 @@ def test_mutant77_reward_points_used_0_points_used_None(flight_system):
     assert result.refund_amount == 0.0
     assert not result.points_used and result.points_used is not None
 
-def test_mutant78__equal_passengers_and_seats(flight_system):
+def test_mutant78_equal_passengers_and_seats(flight_system):
     """
     Teste com passageiros igual aos assentos disponíveis (5 == 5).
     Deve retornar confirmação True com preço calculado.
@@ -94,7 +94,7 @@ def test_mutant78__equal_passengers_and_seats(flight_system):
     assert result.confirmation
     assert result.total_price > 0.0
 
-def test_mutant90__mutant92_mutant93_exactly_24_hours_departure(flight_system):
+def test_mutant90_mutant92_mutant93_exactly_24_hours_departure(flight_system):
     """
     Teste com exatamente 24 horas de antecedência.
     Mata mutante 90 e 92, que alteram o cálculo de hours_to_departure
